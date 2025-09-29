@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\product;
+use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use PhpParser\Node\Stmt\TryCatch;
 
 class ProductController extends Controller
 {
@@ -12,7 +14,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = product::all();
+        $products = Product::all();
         return response()->json(['products' => $products]);
     }
 
@@ -21,28 +23,56 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer',
-        ]);
 
-        $product = product::create($request->all());
-        return response()->json(['products' => $product]);
+        $validator = Validator::make($request->all(), [
+
+            'name' => 'required|string|max:50',
+            'price' => 'required|numeric',
+            'stock' => 'required|integer|min:0',
+
+        ],[
+            'name.required' => 'name must be filled',
+            'name.string' => 'name must be filled by array ',
+            'name.max' => 'max 50 chars',
+            'price.required' => 'price must be filled',
+            'price.required' => 'price must be a number',
+            'stock.required' => 'stock must be filled',
+            'stock.integer' => 'stock must be filled by integer',
+            'stock.min' => 'stock must be positive',
+        ]
+        );
+
+        if ($validator->fails()) {
+            $errors = $validator->errors()->all();
+            $errorMessages = implode(', ', $errors);
+            return $errorMessages;
+        }
+
+        $validated = $validator->validated();
+
+        product::create($request->all());
+        return response()->json(['message' => 'produk berhasil disimpan'], 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        $product = product::find($id);
+
+
+
+
+        $product = Product::findOrFail($id);
 
         if ($product) {
             return response()->json(['product']);
         } else {
             return response()->json(['message' => 'produk tidak ditemukan'], 404);
         }
+
+
+
     }
 
     /**
@@ -50,29 +80,53 @@ class ProductController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $validatedData = $request->validate([
-            'name' => 'required',
+
+        $validator = Validator::make($request->all(), [
+
+            'name' => 'required|string|max:50',
             'price' => 'required|numeric',
-            'stock' => 'required|integer',
-        ]);
-        $product = product::find($id);
-        if (!$product) {
-            return response()->json(['message' => 'Produk tidak ditemukan'], 404);
+            'stock' => 'required|integer|min:0',
+
+        ],[
+            'name.required' => 'name must be filled',
+            'name.string' => 'name must be filled by array ',
+            'name.max' => 'max 50 chars',
+            'price.required' => 'price must be filled',
+            'price.required' => 'price must be a number',
+            'stock.required' => 'stock must be filled',
+            'stock.integer' => 'stock must be filled by integer',
+            'stock.min' => 'stock must be positive',
+        ]
+        );
+
+        if ($validator->fails()) {
+            $errors = $validator->errors()->all();
+            $errorMessages = implode(', ', $errors);
+            return $errorMessages;
         }
-        $product->update($validatedData);
-        return response()->json(['message' => 'produk berhasil diupdate', 'product' => $product]);
+
+        $validated = $validator->validated();
+
+        product::create($request->all());
+        return response()->json(['message' => 'produk berhasil disimpan'], 201);
     }
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
-    {
-        $product = product::find($id);
 
-        if (!$product) {
-            return response()->json(['message' => 'produk tidak ditemukan'],404);
+    {
+        try {
+            //code...
+            $product = Product::findOrFail($id);
+        } catch (\Throwable $th) {
+            //throw $th;
+             return response()->json(['message' => 'produk tidak ditemukan'], 404);
         }
+
+
+
         $product->delete();
         return response()->json(['message' => 'produk berhasil dihapus']);
     }
